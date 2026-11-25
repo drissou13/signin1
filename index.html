@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Santa Sack Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+
+  <style>
+
+    /* ── Variables ────────────────────────────────────────────────────── */
+    :root {
+      --sky-top:     #142240;
+      --sky-bottom:  #3b5b8f;
+      --snow:        #f7fbff;
+      --snow-shade:  #d9e6f2;
+
+      --glass:       rgba(14, 24, 48, .72);
+      --glass-line:  rgba(255, 255, 255, .12);
+      --field:       rgba(255, 255, 255, .06);
+      --field-hover: rgba(255, 255, 255, .09);
+      --field-line:  rgba(255, 255, 255, .14);
+      --text:        #f3f6ff;
+      --muted:       #a3b0cc;
+      --gold:        #f0c96a;
+      --gold-2:      #d89a35;
+      --gold-ink:    #251a05;
+      --red:         #d6403a;
+      --error:       #ff9b93;
+
+      --ground:      90px;
+      --card-w:      min(380px, calc(100vw - 32px));
+      --card-lift:   96px;
+      --s:           1;
+    }
+
+    @media (max-width: 600px) {
+      :root { --s: .7; }
+    }
+
+    @media (max-width: 600px) and (min-height: 760px) {
+      :root { --card-lift: 170px; }
+    }
+
+    /* ── Base ─────────────────────────────────────────────────────────── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      background: linear-gradient(var(--sky-top), var(--sky-bottom));
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      min-height: 760px;
+      overflow: hidden;
+      perspective: 900px;
+    }
+
+    /* ── Sky decor ────────────────────────────────────────────────────── */
+    .moon {
+      position: absolute;
+      top: 48px;
+      right: 12%;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #fff8dc;
+      box-shadow: 0 0 60px 10px rgba(255, 248, 220, .35);
+    }
+
+    .flake {
+      position: absolute;
+      top: -10px;
+      border-radius: 50%;
+      background: #fff;
+      pointer-events: none;
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      to { transform: translate(var(--drift), 110vh); }
+    }
+
+    .ground {
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: 0;
+      height: calc(var(--ground) + 30px);
+      background: linear-gradient(var(--snow), var(--snow-shade));
+      border-radius: 50% 50% 0 0 / 40px 40px 0 0;
+    }
+
+    /* ── Santa ────────────────────────────────────────────────────────── */
+    .santa-pos {
+      position: absolute;
+      left: calc(50% - 127px);
+      bottom: calc(var(--ground) - 4px);
+      width: 160px;
+      z-index: 3;
+      scale: var(--s);
+      transform-origin: 127px 100%;
+    }
+
+    .santa-pos::after,
+    .sack-pos::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      width: 70%;
+      height: 14px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: rgba(30, 50, 80, .18);
+      z-index: -1;
+    }
+
+    .santa {
+      display: block;
+      width: 160px;
+      height: auto;
+      overflow: visible;
+      transform-origin: 50% 100%;
+      transition: transform .35s ease;
+    }
+
+    .santa .leg,
+    .santa .arm,
+    .santa .mouth { transform-box: view-box; transition: transform .4s ease; }
+
+    .santa .leg-back  { transform-origin: 70px 172px; }
+    .santa .leg-front { transform-origin: 92px 172px; }
+    .santa .arm-back  { transform-origin: 62px 112px; }
+    .santa .arm-front { transform-origin: 104px 112px; }
+    .santa .mouth     { transform-box: fill-box; transform-origin: center; }
+
+    /* walking */
+    .walking .santa     { animation: bob .225s ease-in-out infinite alternate; }
+    .walking .leg-front { animation: stride .45s ease-in-out infinite alternate; }
+    .walking .leg-back  { animation: stride .45s ease-in-out infinite alternate-reverse; }
+    .walking .arm-back  { animation: stride .45s ease-in-out infinite alternate; }
+
+    @keyframes bob    { to { transform: translateY(-4px); } }
+    @keyframes stride {
+      from { transform: rotate(-20deg); }
+      to   { transform: rotate(20deg); }
+    }
+
+    /* bending to place the sack */
+    .bend .santa { transform: rotate(9deg); }
+    .bend .arm-front { transform: rotate(-10deg); }
+
+    /* cheering */
+    .cheer .arm-front { transform: rotate(-140deg); }
+    .cheer .arm-back  { transform: rotate(160deg); }
+    .cheer .mouth     { transform: scaleY(2.6); }
+    .cheer .santa     { animation: jump .6s ease-in-out 3; }
+
+    @keyframes jump {
+      0%, 100% { transform: translateY(0); }
+      45%      { transform: translateY(-34px) rotate(-3deg); }
+    }
+
+    /* ── Sack ─────────────────────────────────────────────────────────── */
+    .sack-pos {
+      position: absolute;
+      left: calc(50% - 38px);
+      bottom: calc(var(--ground) - 4px);
+      width: 76px;
+      z-index: 2;
+      scale: var(--s);
+      transform-origin: 50% 100%;
+    }
+
+    .sack {
+      display: block;
+      width: 76px;
+      height: auto;
+      overflow: visible;
+      transform-origin: 50% 8%;
+      transition: transform .45s cubic-bezier(.3, 1.6, .6, 1);
+    }
+
+    .carried .sack { animation: swing .45s ease-in-out infinite alternate; }
+
+    @keyframes swing {
+      from { transform: translateY(-16px) rotate(-7deg); }
+      to   { transform: translateY(-16px) rotate(7deg); }
+    }
+
+    .sack-all  { transform-box: fill-box; transform-origin: 50% 100%; }
+    .wobble .sack-all { animation: squish .5s ease-in-out 2; }
+
+    @keyframes squish {
+      0%, 100% { transform: scale(1, 1); }
+      30%      { transform: scale(1.12, .88); }
+      60%      { transform: scale(.94, 1.08); }
+    }
+
+    .sack-top {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform .6s cubic-bezier(.2, .9, .3, 1.2), opacity .6s;
+    }
+
+    .sack-glow { opacity: 0; transition: opacity .4s; }
+
+    .open .sack-top  { transform: translate(26px, -60px) rotate(50deg); opacity: 0; }
+    .open .sack-glow { opacity: 1; }
+
+    /* light beam + sparkles */
+    .beam {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--ground) + 50px);
+      width: 260px;
+      height: 340px;
+      transform: translateX(-50%) scaleY(0);
+      transform-origin: 50% 100%;
+      background: linear-gradient(to top, rgba(255, 240, 180, .9), rgba(255, 240, 180, 0));
+      clip-path: polygon(44% 100%, 56% 100%, 100% 0, 0 0);
+      opacity: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .spark {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--ground) + 60px);
+      width: 10px;
+      height: 10px;
+      background: var(--gold);
+      clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* ── Login card ───────────────────────────────────────────────────── */
+    .card {
+      position: absolute;
+      left: 50%;
+      bottom: calc(var(--ground) + var(--card-lift));
+      width: var(--card-w);
+      padding: 30px 28px 24px;
+      color: var(--text);
+      background: var(--glass);
+      border: 1px solid var(--glass-line);
+      border-radius: 24px;
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      box-shadow:
+        0 40px 80px -24px rgba(4, 10, 24, .75),
+        inset 0 1px 0 rgba(255, 255, 255, .08);
+      transform-origin: 50% 100%;
+      transform: translateX(-50%);
+      opacity: 0;
+      visibility: hidden;
+      overflow: hidden;
+      z-index: 4;
+    }
+
+    /* gift ribbon across the top edge */
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, var(--red), var(--gold) 50%, var(--red));
+    }
+
+    .card.shown { visibility: visible; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .brand-mark {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, var(--gold), var(--gold-2));
+      box-shadow: 0 8px 20px -6px rgba(240, 201, 106, .55);
+    }
+
+    .brand-mark svg { width: 22px; height: 22px; stroke: var(--gold-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .card h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.4px;
+      line-height: 1.2;
+    }
+
+    .card .sub {
+      color: var(--muted);
+      font-size: 13.5px;
+      margin-top: 2px;
+    }
+
+    .field { margin-bottom: 16px; }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #d4dcef;
+    }
+
+    .link {
+      color: var(--gold);
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    .input {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input svg.icon {
+      position: absolute;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      stroke: var(--muted);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+      transition: stroke .2s;
+    }
+
+    .input input {
+      width: 100%;
+      height: 48px;
+      font: inherit;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--field);
+      border: 1px solid var(--field-line);
+      border-radius: 12px;
+      padding: 0 44px;
+      outline: none;
+      transition: border-color .2s, background .2s, box-shadow .2s;
+    }
+
+    .input input::placeholder { color: #7684a3; font-weight: 400; }
+    .input input:hover { background: var(--field-hover); }
+
+    .input input:focus {
+      border-color: var(--gold);
+      background: var(--field-hover);
+      box-shadow: 0 0 0 4px rgba(240, 201, 106, .16);
+    }
+
+    .input:focus-within svg.icon { stroke: var(--gold); }
+
+    .field.invalid input { border-color: var(--error); box-shadow: 0 0 0 4px rgba(255, 155, 147, .12); }
+
+    .error {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      color: var(--error);
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 7px;
+    }
+    .field.invalid .error { display: flex; }
+
+    .toggle-pw {
+      position: absolute;
+      right: 6px;
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .toggle-pw:hover { background: rgba(255, 255, 255, .08); }
+    .toggle-pw svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .toggle-pw .eye-off { display: none; }
+    .toggle-pw[aria-pressed="true"] .eye-on  { display: none; }
+    .toggle-pw[aria-pressed="true"] .eye-off { display: block; }
+
+    /* custom checkbox */
+    .remember {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 2px 0 20px;
+      font-size: 13px;
+      color: #d4dcef;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .remember input {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--field-line);
+      border-radius: 5px;
+      background: var(--field);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+
+    .remember input::after {
+      content: "";
+      width: 9px;
+      height: 5px;
+      border: solid var(--gold-ink);
+      border-width: 0 0 2px 2px;
+      transform: translateY(-1px) rotate(-45deg) scale(0);
+      transition: transform .15s;
+    }
+
+    .remember input:checked { background: var(--gold); border-color: var(--gold); }
+    .remember input:checked::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
+    .remember input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+    .submit {
+      position: relative;
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, var(--gold), var(--gold-2));
+      color: var(--gold-ink);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 10px 24px -10px rgba(240, 180, 80, .7), inset 0 1px 0 rgba(255, 255, 255, .45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform .15s, box-shadow .15s, filter .15s;
+    }
+
+    .submit:hover  { transform: translateY(-1px); filter: brightness(1.05); }
+    .submit:active { transform: translateY(0); }
+    .submit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .submit:disabled { cursor: progress; }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(37, 26, 5, .25);
+      border-top-color: var(--gold-ink);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    .submit.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #7684a3;
+      font-size: 12px;
+      margin: 20px 0 16px;
+    }
+    .divider::before,
+    .divider::after { content: ""; flex: 1; height: 1px; background: var(--glass-line); }
+
+    .socials {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .social {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--field-line);
+      border-radius: 12px;
+      background: var(--field);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    .social:hover { background: var(--field-hover); border-color: rgba(255, 255, 255, .24); }
+    .social svg { width: 18px; height: 18px; }
+
+    .foot {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 20px;
+    }
+
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      background: rgba(76, 196, 140, .12);
+      border: 1px solid rgba(76, 196, 140, .35);
+      color: #a8f0cd;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .toast.show { display: flex; }
+
+    .shake { animation: cardShake .45s ease-in-out; }
+
+    @keyframes cardShake {
+      0%, 100% { translate: 0; }
+      20%, 60% { translate: -8px; }
+      40%, 80% { translate: 8px; }
+    }
+
+    /* ── Replay ───────────────────────────────────────────────────────── */
+    .replay {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(20, 34, 64, .12);
+      background: rgba(255, 255, 255, .7);
+      color: #1d2b4a;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+    }
+    .replay:hover { background: #fff; }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="scene" id="scene">
+    <button class="replay" id="replay" type="button">↻ Replay</button>
+    <div class="moon"></div>
+    <div class="ground"></div>
+    <div class="beam" id="beam"></div>
+
+    <!-- ── Sack ────────────────────────────────────────────────────── -->
+    <div class="sack-pos" id="sackPos">
+      <svg class="sack" id="sack" viewBox="0 0 100 100" aria-hidden="true">
+        <g class="sack-all">
+          <path d="M22 34 Q2 60 9 82 Q16 99 50 99 Q84 99 91 82 Q98 60 78 34 Z" fill="#8e2b22" />
+          <path d="M26 44 Q14 64 18 80 Q22 90 34 93 Q22 78 30 46 Z" fill="#b13a2e" opacity=".7" />
+          <path d="M50 54 l5 11 12 1 -9 8 3 12 -11 -6 -11 6 3 -12 -9 -8 12 -1 z" fill="#f4d47c" />
+          <ellipse class="sack-glow" cx="50" cy="34" rx="24" ry="7" fill="#fff6c9" />
+          <g class="sack-top">
+            <path d="M28 36 Q34 18 24 6 Q50 16 76 6 Q66 18 72 36 Z" fill="#a8362a" />
+            <rect x="26" y="30" width="48" height="8" rx="4" fill="#f4d47c" />
+            <path d="M50 34 q-14 -12 -18 2 q6 6 18 -2 q14 -12 18 2 q-6 6 -18 -2" fill="#f4d47c" />
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- ── Santa ───────────────────────────────────────────────────── -->
+    <div class="santa-pos" id="santaPos">
+      <svg class="santa" id="santa" viewBox="0 0 160 228" aria-hidden="true">
+        <!-- back arm -->
+        <g class="arm arm-back">
+          <path d="M62 112 Q48 135 52 156" stroke="#a61e1e" stroke-width="18" stroke-linecap="round" fill="none" />
+          <circle cx="52" cy="158" r="10" fill="#fff" />
+          <circle cx="52" cy="165" r="9" fill="#2b2b2b" />
+        </g>
+
+        <!-- legs -->
+        <g class="leg leg-back">
+          <rect x="61" y="166" width="18" height="44" rx="6" fill="#a61e1e" />
+          <path d="M58 206 h26 q12 0 12 10 v8 h-38 z" fill="#1d1d1d" />
+        </g>
+        <g class="leg leg-front">
+          <rect x="83" y="166" width="18" height="44" rx="6" fill="#c62828" />
+          <path d="M80 206 h26 q12 0 12 10 v8 h-38 z" fill="#262626" />
+        </g>
+
+        <!-- body -->
+        <path d="M40 120 Q40 92 80 90 Q120 92 122 120 L126 176 Q80 186 36 176 Z" fill="#d32f2f" />
+        <rect x="96" y="100" width="10" height="76" fill="#fff" />
+        <path d="M34 170 Q80 182 128 170 L128 184 Q80 196 34 184 Z" fill="#fff" />
+        <rect x="37" y="144" width="89" height="12" fill="#1d1d1d" />
+        <rect x="92" y="141" width="18" height="18" rx="3" fill="none" stroke="#f4d47c" stroke-width="4" />
+
+        <!-- head -->
+        <circle cx="84" cy="66" r="24" fill="#f7c9a3" />
+        <path d="M60 70 Q56 112 84 118 Q116 114 112 76 Q104 88 84 88 Q68 88 60 70 Z" fill="#fff" />
+        <circle cx="102" cy="77" r="5" fill="#f28b82" opacity=".6" />
+        <circle cx="90"  cy="65" r="3" fill="#2b1d16" />
+        <circle cx="103" cy="65" r="3" fill="#2b1d16" />
+        <path d="M86 59 q4 -3 8 0 M99 59 q4 -3 8 0" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" />
+        <circle cx="104" cy="74" r="5.5" fill="#e8846c" />
+        <ellipse class="mouth" cx="98" cy="93" rx="4.5" ry="2" fill="#7a2c2c" />
+        <path d="M84 84 Q96 76 106 82 Q115 86 110 90 Q100 86 96 88 Q90 90 84 86 Z" fill="#f3f3f3" />
+
+        <!-- hat -->
+        <path d="M60 52 Q64 18 92 20 Q112 22 110 50 Z" fill="#d32f2f" />
+        <path d="M68 28 Q42 20 30 44" stroke="#d32f2f" stroke-width="14" stroke-linecap="round" fill="none" />
+        <circle cx="29" cy="49" r="9" fill="#fff" />
+        <rect x="56" y="45" width="60" height="13" rx="6.5" fill="#fff" />
+
+        <!-- front arm (holds sack) -->
+        <g class="arm arm-front">
+          <path d="M104 112 Q122 132 126 150" stroke="#d32f2f" stroke-width="18" stroke-linecap="round" fill="none" />
+          <circle cx="126" cy="153" r="10" fill="#fff" />
+          <circle cx="127" cy="161" r="9" fill="#2b2b2b" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- ── Login card (pops out of the sack) ───────────────────────── -->
+    <form class="card" id="card" novalidate>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5" /></svg>
+        </div>
+        <div>
+          <h1>Welcome back</h1>
+          <p class="sub">Sign in to unwrap your account</p>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" role="status">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        Signed in. Merry Christmas!
+      </div>
+
+      <div class="field" id="emailField">
+        <div class="label-row"><label for="email">Email</label></div>
+        <div class="input">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></svg>
+          <input id="email" type="email" placeholder="name@company.com" autocomplete="email" aria-describedby="emailError" />
+        </div>
+        <p class="error" id="emailError"></p>
+      </div>
+
+      <div class="field" id="pwField">
+        <div class="label-row">
+          <label for="password">Password</label>
+          <a class="link" href="#">Forgot password?</a>
+        </div>
+        <div class="input">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="3" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password" aria-describedby="pwError" />
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password" aria-pressed="false">
+            <svg class="eye-on" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+            <svg class="eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A17.6 17.6 0 0 0 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+          </button>
+        </div>
+        <p class="error" id="pwError"></p>
+      </div>
+
+      <label class="remember"><input type="checkbox" /> Keep me signed in</label>
+
+      <button class="submit" id="submit" type="submit">
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="submitText">Sign in</span>
+      </button>
+
+      <div class="divider">or continue with</div>
+
+      <div class="socials">
+        <button type="button" class="social">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8Z" /><path fill="#34A853" d="M12 23c3 0 5.4-1 7.2-2.7l-3.5-2.7c-1 .7-2.2 1-3.7 1-2.8 0-5.2-1.9-6.1-4.5H2.3v2.8A11 11 0 0 0 12 23Z" /><path fill="#FBBC05" d="M5.9 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.3a11 11 0 0 0 0 9.8l3.6-2.8Z" /><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.1l3.6 2.8C6.8 7.3 9.2 5.4 12 5.4Z" /></svg>
+          Google
+        </button>
+        <button type="button" class="social">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9a4.8 4.8 0 0 0-4 2.5c-1.8 3-.5 7.5 1.2 10 .8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.5a10 10 0 0 0 1.4-2.8 4.3 4.3 0 0 1-2.7-3.9ZM14 5.2a4.3 4.3 0 0 0 1-3.2 4.5 4.5 0 0 0-2.9 1.5 4.2 4.2 0 0 0-1 3.1 3.7 3.7 0 0 0 2.9-1.4Z" /></svg>
+          Apple
+        </button>
+      </div>
+
+      <p class="foot">Don't have an account? <a class="link" href="#">Create one</a></p>
+    </form>
+  </div>
+
+  <script>
+    const scene    = document.getElementById('scene');
+    const santaPos = document.getElementById('santaPos');
+    const sackPos  = document.getElementById('sackPos');
+    const beam     = document.getElementById('beam');
+    const card     = document.getElementById('card');
+    const email    = document.getElementById('email');
+    const pw       = document.getElementById('password');
+    const togglePw = document.getElementById('togglePw');
+    const submit   = document.getElementById('submit');
+
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let runId = 0;
+
+    // ── Snowfall ────────────────────────────────────────────────────
+    for (let i = 0; i < 60; i++) {
+      const f = document.createElement('span');
+      const size = 2 + Math.random() * 5;
+      f.className = 'flake';
+      f.style.cssText = `
+        left:${Math.random() * 100}%;
+        width:${size}px; height:${size}px;
+        opacity:${.4 + Math.random() * .6};
+        --drift:${-40 + Math.random() * 80}px;
+        animation-duration:${6 + Math.random() * 8}s;
+        animation-delay:${-Math.random() * 14}s;`;
+      scene.appendChild(f);
+    }
+
+    // ── Sparkle burst from the sack ─────────────────────────────────
+    function burst() {
+      for (let i = 0; i < 16; i++) {
+        const s = document.createElement('span');
+        s.className = 'spark';
+        scene.appendChild(s);
+        const a = Math.PI + Math.random() * Math.PI;
+        const d = 80 + Math.random() * 120;
+        s.animate([
+          { transform: 'translate(-50%, 0) scale(.4) rotate(0)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), ${Math.sin(a) * d}px) scale(1.4) rotate(180deg)`, opacity: 0 }
+        ], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.2,.8,.3,1)' })
+          .finished.then(() => s.remove());
+      }
+    }
+
+    // ── Reset everything to the start ───────────────────────────────
+    function reset() {
+      [santaPos, sackPos, beam, card].forEach(el => el.getAnimations().forEach(a => a.cancel()));
+      santaPos.className = 'santa-pos';
+      sackPos.className  = 'sack-pos';
+      card.classList.remove('shown');
+    }
+
+    // ── The story ───────────────────────────────────────────────────
+    async function play() {
+      const id = ++runId;
+      const alive = () => id === runId;
+      reset();
+
+      const w     = scene.clientWidth;
+      const start = -(w / 2 + 220);
+      const s     = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')) || 1;
+      const step  = Math.max(40, Math.min(230, w / 2 - 127 * s - 20));
+      const opts  = { fill: 'forwards' };
+
+      if (reduceMotion) {
+        santaPos.animate([{ transform: `translateX(${-step}px)` }], opts);
+        sackPos.classList.add('open');
+        card.classList.add('shown');
+        card.animate([{ opacity: 1, transform: 'translateX(-50%)' }], opts);
+        return;
+      }
+
+      // 1. Santa walks in carrying the sack
+      santaPos.classList.add('walking');
+      sackPos.classList.add('carried');
+      const walk = { duration: 3200, easing: 'linear', ...opts };
+      santaPos.animate([{ transform: `translateX(${start}px)` }, { transform: 'translateX(0)' }], walk);
+      await sackPos.animate([{ transform: `translateX(${start}px)` }, { transform: 'translateX(0)' }], walk).finished;
+      if (!alive()) return;
+
+      // 2. Bends and sets the sack down
+      santaPos.classList.remove('walking');
+      santaPos.classList.add('bend');
+      sackPos.classList.remove('carried');
+      await wait(500);
+      if (!alive()) return;
+
+      // 3. Steps back while the sack wiggles
+      santaPos.classList.remove('bend');
+      santaPos.classList.add('walking');
+      sackPos.classList.add('wobble');
+      await santaPos.animate(
+        [{ transform: 'translateX(0)' }, { transform: `translateX(${-step}px)` }],
+        { duration: 1100, easing: 'ease-out', ...opts }
+      ).finished;
+      if (!alive()) return;
+      santaPos.classList.remove('walking');
+
+      // 4. Sack bursts open and the login card pops out
+      sackPos.classList.add('open');
+      burst();
+      beam.animate([
+        { transform: 'translateX(-50%) scaleY(0)', opacity: 0 },
+        { transform: 'translateX(-50%) scaleY(1)', opacity: 1, offset: .4 },
+        { transform: 'translateX(-50%) scaleY(1)', opacity: 0 }
+      ], { duration: 1600, easing: 'ease-out', ...opts });
+
+      card.classList.add('shown');
+      const rise = sackPos.getBoundingClientRect().top + 10 - card.getBoundingClientRect().bottom;
+      card.animate([
+        { transform: `translateX(-50%) translateY(${rise}px) scale(.05) rotateX(70deg)`, opacity: 0 },
+        { transform: 'translateX(-50%) translateY(-24px) scale(1.04) rotateX(-8deg)', opacity: 1, offset: .65 },
+        { transform: 'translateX(-50%) translateY(0) scale(1) rotateX(0)', opacity: 1 }
+      ], { duration: 1000, easing: 'cubic-bezier(.2,.9,.3,1)', ...opts });
+
+      // 5. Santa cheers
+      await wait(350);
+      if (!alive()) return;
+      santaPos.classList.add('cheer');
+      await wait(2000);
+      if (alive()) santaPos.classList.remove('cheer');
+    }
+
+    document.getElementById('replay').addEventListener('click', play);
+    play();
+
+    // ── Form behaviour ──────────────────────────────────────────────
+    const toast      = document.getElementById('toast');
+    const submitText = document.getElementById('submitText');
+    const errIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>';
+
+    togglePw.addEventListener('click', () => {
+      const show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      togglePw.setAttribute('aria-pressed', show);
+      togglePw.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      pw.focus();
+    });
+
+    const setError = (which, msg) => {
+      document.getElementById(which + 'Field').classList.toggle('invalid', !!msg);
+      document.getElementById(which + 'Error').innerHTML = msg ? errIcon + msg : '';
+    };
+
+    email.addEventListener('input', () => setError('email', ''));
+    pw.addEventListener('input', () => setError('pw', ''));
+
+    card.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (submit.disabled) return;
+      toast.classList.remove('show');
+
+      const emailOk = /^\S+@\S+\.\S+$/.test(email.value.trim());
+      const pwOk    = pw.value.length >= 6;
+      setError('email', emailOk ? '' : 'Enter a valid email address.');
+      setError('pw',    pwOk    ? '' : 'Password must be at least 6 characters.');
+
+      if (!emailOk || !pwOk) {
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+        (emailOk ? pw : email).focus();
+        return;
+      }
+
+      // fake request
+      submit.disabled = true;
+      submit.classList.add('loading');
+      submitText.textContent = 'Signing in…';
+      await wait(1200);
+
+      submit.classList.remove('loading');
+      submitText.textContent = 'Sign in';
+      submit.disabled = false;
+      toast.classList.add('show');
+      burst();
+      santaPos.classList.add('cheer');
+      await wait(2000);
+      santaPos.classList.remove('cheer');
+    });
+  </script>
+
+</body>
+
+</html>
